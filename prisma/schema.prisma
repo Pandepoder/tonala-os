@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("Ciudadano") // Administrador, Organizador, Ciudadano
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contactsAssigned Contact[] @relation("ContactResponsible")
+}
+
+model Contact {
+  id            String   @id @default(cuid())
+  name          String
+  colony        String
+  status        String   @default("pendiente") // pendiente, asignado, visita
+  tag           String   @default("Pendiente")
+  tagClass      String   @default("warning") // warning, green, blue
+  nextAction    String   @default("Asignar responsable")
+  visitInfo     String   @default("Sin visita")
+  
+  responsibleId String?
+  responsible   User?    @relation("ContactResponsible", fields: [responsibleId], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  visits        Visit[]
+}
+
+model Visit {
+  id            String   @id @default(cuid())
+  contactId     String
+  contact       Contact  @relation(fields: [contactId], references: [id])
+  resultType    String?
+  summary       String?
+  status        String   @default("pendiente") // pendiente, completada
+  scheduledFor  DateTime?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model EventReport {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  latitude    Float
+  longitude   Float
+  zone        String?
+  status      String   @default("activo")
+  
+  createdAt   DateTime @default(now())
+}
+
+model WebhookMessage {
+  id          String   @id @default(cuid())
+  sender      String
+  content     String
+  source      String   @default("whatsapp")
+  status      String   @default("pending") // pending, processed, ignored
+  createdAt   DateTime @default(now())
+}
