@@ -11,6 +11,12 @@ export type SessionPayload = {
   name: string;
 };
 
+/**
+ * Encripta los datos del usuario para crear un token seguro.
+ * Nadie puede leer este token sin el `secretKey`.
+ * @param payload Datos del usuario (ID, email, rol, nombre)
+ * @returns El token JWT en formato string.
+ */
 export async function encrypt(payload: SessionPayload) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
@@ -19,6 +25,12 @@ export async function encrypt(payload: SessionPayload) {
     .sign(key);
 }
 
+/**
+ * Desencripta un token JWT para sacar los datos del usuario.
+ * Útil para saber quién está haciendo la petición.
+ * @param input El token JWT en string.
+ * @returns Los datos originales del usuario o null si el token es inválido.
+ */
 export async function decrypt(input: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(input, key, {
@@ -30,6 +42,11 @@ export async function decrypt(input: string): Promise<SessionPayload | null> {
   }
 }
 
+/**
+ * Crea una sesión para el usuario y guarda la cookie en su navegador.
+ * Las cookies son seguras (HTTP-only) para evitar ataques XSS.
+ * @param payload Datos del usuario que acaba de iniciar sesión.
+ */
 export async function createSession(payload: SessionPayload) {
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   const session = await encrypt(payload);
@@ -43,12 +60,19 @@ export async function createSession(payload: SessionPayload) {
   });
 }
 
+/**
+ * Obtiene la sesión actual del usuario leyendo las cookies de su navegador.
+ * @returns Datos del usuario (ID, email, rol) o null si no está logueado.
+ */
 export async function getSession() {
   const sessionCookie = (await cookies()).get("session")?.value;
   if (!sessionCookie) return null;
   return await decrypt(sessionCookie);
 }
 
+/**
+ * Cierra la sesión del usuario destruyendo la cookie.
+ */
 export async function destroySession() {
   (await cookies()).set("session", "", {
     expires: new Date(0),
